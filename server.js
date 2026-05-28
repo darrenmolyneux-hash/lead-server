@@ -4,8 +4,8 @@ app.get("/search", async (req, res) => {
 
   const finalQuery = `${query} site:linkedin.com/in`;
 
-  // Fetch 5 pages of results
-  const pages = [0, 10, 20, 30, 40];
+  // 50 pages → up to 500 results
+  const pages = Array.from({ length: 50 }, (_, i) => i * 10);
 
   try {
     let allResults = [];
