@@ -2,28 +2,29 @@ app.get("/search", async (req, res) => {
   const query = req.query.q;
   if (!query) return res.json({ error: "Missing ?q= parameter" });
 
+  // Force LinkedIn profile results
   const finalQuery = `${query} site:linkedin.com/in`;
 
-  // 50 pages → up to 500 results
+  // Ask Google for more results per page
   const pages = Array.from({ length: 50 }, (_, i) => i * 10);
 
-  // --- NEW: Company extraction function ---
+  // --- Improved company extraction ---
   function extractCompany(item) {
     const title = item.title || "";
     const snippet = item.snippet || "";
     const link = item.link || "";
 
-    // 1. Title format: "Name - Role at Company"
+    // Title: "Name - Role at Company"
     if (title.includes(" at ")) {
       return title.split(" at ")[1].split(/[-|]/)[0].trim();
     }
 
-    // 2. Snippet format: "... Role at Company ..."
+    // Snippet: "... Role at Company ..."
     if (snippet.includes(" at ")) {
       return snippet.split(" at ")[1].split(/[.|,]/)[0].trim();
     }
 
-    // 3. LinkedIn company URL fallback
+    // LinkedIn company URL fallback
     if (link.includes("/company/")) {
       return link
         .split("/company/")[1]
@@ -41,7 +42,7 @@ app.get("/search", async (req, res) => {
     for (let start of pages) {
       const url = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(
         finalQuery
-      )}&start=${start}&api_key=${API_KEY}`;
+      )}&start=${start}&num=20&api_key=${API_KEY}`;
 
       const response = await fetch(url);
       const data = await response.json();
@@ -50,10 +51,10 @@ app.get("/search", async (req, res) => {
         const title = item.title || "";
         const snippet = item.snippet || "";
 
-        // --- NEW: Better name extraction ---
+        // Better name extraction
         let name = title.split(" - ")[0].split("|")[0].trim();
 
-        // --- NEW: Better role extraction ---
+        // Better role extraction
         let role = "";
         if (title.includes(" - ")) {
           role = title.split(" - ")[1].trim();
@@ -61,7 +62,7 @@ app.get("/search", async (req, res) => {
           role = snippet.split(" at ")[0].trim();
         }
 
-        // --- NEW: Correct company extraction ---
+        // Correct company extraction
         const company = extractCompany(item);
 
         return {
