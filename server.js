@@ -7,6 +7,34 @@ app.get("/search", async (req, res) => {
   // 50 pages → up to 500 results
   const pages = Array.from({ length: 50 }, (_, i) => i * 10);
 
+  // --- NEW: Company extraction function ---
+  function extractCompany(item) {
+    const title = item.title || "";
+    const snippet = item.snippet || "";
+    const link = item.link || "";
+
+    // 1. Title format: "Name - Role at Company"
+    if (title.includes(" at ")) {
+      return title.split(" at ")[1].split(/[-|]/)[0].trim();
+    }
+
+    // 2. Snippet format: "... Role at Company ..."
+    if (snippet.includes(" at ")) {
+      return snippet.split(" at ")[1].split(/[.|,]/)[0].trim();
+    }
+
+    // 3. LinkedIn company URL fallback
+    if (link.includes("/company/")) {
+      return link
+        .split("/company/")[1]
+        .split("/")[0]
+        .replace(/-/g, " ")
+        .trim();
+    }
+
+    return "";
+  }
+
   try {
     let allResults = [];
 
@@ -22,8 +50,10 @@ app.get("/search", async (req, res) => {
         const title = item.title || "";
         const snippet = item.snippet || "";
 
-        let name = title.split(/[-|]/)[0].trim();
+        // --- NEW: Better name extraction ---
+        let name = title.split(" - ")[0].split("|")[0].trim();
 
+        // --- NEW: Better role extraction ---
         let role = "";
         if (title.includes(" - ")) {
           role = title.split(" - ")[1].trim();
@@ -31,10 +61,8 @@ app.get("/search", async (req, res) => {
           role = snippet.split(" at ")[0].trim();
         }
 
-        let company = "";
-        if (snippet.includes(" at ")) {
-          company = snippet.split(" at ")[1].split(".")[0].trim();
-        }
+        // --- NEW: Correct company extraction ---
+        const company = extractCompany(item);
 
         return {
           name,
